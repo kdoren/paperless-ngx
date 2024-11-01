@@ -341,12 +341,12 @@ class Command(CryptMixin, BaseCommand):
                         manifest_dict["custom_field_instances"],
                     ),
                 )
-                manifest_name.write_text(
+
+                # write manifest unless identical file exists
+                self.check_and_write(
                     json.dumps(content, indent=2, ensure_ascii=False),
-                    encoding="utf-8",
+                    manifest_name
                 )
-                if manifest_name in self.files_in_export_dir:
-                    self.files_in_export_dir.remove(manifest_name)
 
         # These were exported already
         if self.split_manifest:
@@ -359,12 +359,10 @@ class Command(CryptMixin, BaseCommand):
         for key in manifest_dict:
             manifest.extend(manifest_dict[key])
         manifest_path = (self.target / "manifest.json").resolve()
-        manifest_path.write_text(
+        self.check_and_write(
             json.dumps(manifest, indent=2, ensure_ascii=False),
-            encoding="utf-8",
+            manifest_path
         )
-        if manifest_path in self.files_in_export_dir:
-            self.files_in_export_dir.remove(manifest_path)
 
         # 4.2 write version information to target folder
         extra_metadata_path = (self.target / "metadata.json").resolve()
@@ -376,16 +374,11 @@ class Command(CryptMixin, BaseCommand):
         # Django stores most of these in the field itself, we store them once here
         if self.passphrase:
             metadata.update(self.get_crypt_params())
-        extra_metadata_path.write_text(
-            json.dumps(
-                metadata,
-                indent=2,
-                ensure_ascii=False,
-            ),
-            encoding="utf-8",
+
+        self.check_and_write(
+            json.dumps(metadata, indent=2, ensure_ascii=False),
+            extra_metadata_path
         )
-        if extra_metadata_path in self.files_in_export_dir:
-            self.files_in_export_dir.remove(extra_metadata_path)
 
         if self.delete:
             # 5. Remove files which we did not explicitly export in this run
@@ -513,6 +506,28 @@ class Command(CryptMixin, BaseCommand):
                     document.archive_checksum,
                     archive_target,
                 )
+
+    def check_and_write(
+        self,
+        content: str | None,
+        target: Path,
+    ):
+        """
+        Writes the source content to the target, if target doesn't exist or the target content
+        doesn't match the source content
+        """
+
+        target = target.resolve()
+        perform_write = True
+        if target in self.files_in_export_dir:
+            self.files_in_export_dir.remove(target)
+            target_checksum = hashlib.md5(target.read_bytes()).hexdigest()
+            content_checksum = hashlib.md5(content.encode("utf-8")).hexdigest()
+            if content_checksum == target_checksum:
+                perform_write = False
+
+        if perform_write:
+            target.write_text(content, encoding="utf-8")
 
     def check_and_copy(
         self,
