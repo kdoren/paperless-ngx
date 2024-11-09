@@ -501,7 +501,7 @@ ul.pagination {
   border-color:var(--bs-primary);
 
   .document-card-check {
-    display: block;
+    display: block !important;
   }
 
   .doc-img-container {
@@ -720,8 +720,6 @@ i-bs svg {
 }
 
 .document-card {
-  overflow: hidden;
-
   .card-footer i-bs svg {
     vertical-align: middle;
   }
