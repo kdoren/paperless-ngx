@@ -344,7 +344,7 @@ class Command(CryptMixin, BaseCommand):
 
                 self.check_and_write(
                     content,
-                    manifest_name
+                    manifest_name,
                 )
 
         # These were exported already
@@ -360,7 +360,7 @@ class Command(CryptMixin, BaseCommand):
         manifest_path = (self.target / "manifest.json").resolve()
         self.check_and_write(
             manifest,
-            manifest_path
+            manifest_path,
         )
 
         # 4.2 write version information to target folder
@@ -376,7 +376,7 @@ class Command(CryptMixin, BaseCommand):
 
         self.check_and_write(
             metadata,
-            extra_metadata_path
+            extra_metadata_path,
         )
 
         if self.delete:
@@ -532,7 +532,7 @@ class Command(CryptMixin, BaseCommand):
         if perform_write:
             target.write_text(
                 json.dumps(content, indent=2, ensure_ascii=False),
-                encoding="utf-8"
+                encoding="utf-8",
             )
 
     def check_and_copy(
