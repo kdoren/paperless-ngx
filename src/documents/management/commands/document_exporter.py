@@ -342,7 +342,6 @@ class Command(CryptMixin, BaseCommand):
                     ),
                 )
 
-                # write manifest unless identical file exists
                 self.check_and_write(
                     content,
                     manifest_name
