@@ -344,7 +344,7 @@ class Command(CryptMixin, BaseCommand):
 
                 # write manifest unless identical file exists
                 self.check_and_write(
-                    json.dumps(content, indent=2, ensure_ascii=False),
+                    content,
                     manifest_name
                 )
 
@@ -360,7 +360,7 @@ class Command(CryptMixin, BaseCommand):
             manifest.extend(manifest_dict[key])
         manifest_path = (self.target / "manifest.json").resolve()
         self.check_and_write(
-            json.dumps(manifest, indent=2, ensure_ascii=False),
+            manifest,
             manifest_path
         )
 
@@ -376,7 +376,7 @@ class Command(CryptMixin, BaseCommand):
             metadata.update(self.get_crypt_params())
 
         self.check_and_write(
-            json.dumps(metadata, indent=2, ensure_ascii=False),
+            metadata,
             extra_metadata_path
         )
 
@@ -509,25 +509,32 @@ class Command(CryptMixin, BaseCommand):
 
     def check_and_write(
         self,
-        content: str | None,
+        content: list[dict] | dict,
         target: Path,
     ):
         """
-        Writes the source content to the target, if target doesn't exist or the target content
-        doesn't match the source content
+        Writes the source content to the target (json file).
+        If --compare-checksums arg was used, don't write to target file if
+        the file exists and checksum is identical to content checksum.
+        This preserves the file timestamps when no changes are made.
         """
 
         target = target.resolve()
         perform_write = True
         if target in self.files_in_export_dir:
             self.files_in_export_dir.remove(target)
-            target_checksum = hashlib.md5(target.read_bytes()).hexdigest()
-            content_checksum = hashlib.md5(content.encode("utf-8")).hexdigest()
-            if content_checksum == target_checksum:
-                perform_write = False
+            if self.compare_checksums:
+                target_checksum = hashlib.md5(target.read_bytes()).hexdigest()
+                src_str = json.dumps(content, indent=2, ensure_ascii=False)
+                src_checksum = hashlib.md5(src_str.encode("utf-8")).hexdigest()
+                if src_checksum == target_checksum:
+                    perform_write = False
 
         if perform_write:
-            target.write_text(content, encoding="utf-8")
+            target.write_text(
+                json.dumps(content, indent=2, ensure_ascii=False),
+                encoding="utf-8"
+            )
 
     def check_and_copy(
         self,

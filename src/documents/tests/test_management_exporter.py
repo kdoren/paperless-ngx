@@ -340,6 +340,10 @@ class TestExportImport(
         self.assertNotEqual(st_mtime_1, st_mtime_2)
         self.assertNotEqual(st_mtime_2, st_mtime_3)
 
+        self._do_export(compare_checksums=True)
+        st_mtime_4 = os.stat(os.path.join(self.target, "manifest.json")).st_mtime
+        self.assertEqual(st_mtime_3, st_mtime_4)
+
     def test_update_export_changed_checksum(self):
         shutil.rmtree(os.path.join(self.dirs.media_dir, "documents"))
         shutil.copytree(
