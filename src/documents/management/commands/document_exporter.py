@@ -82,6 +82,18 @@ class Command(CryptMixin, BaseCommand):
         )
 
         parser.add_argument(
+            "-cj",
+            "--compare-json",
+            default=False,
+            action="store_true",
+            help=(
+                "Compare json file checksums when determining whether to "
+                "export a json file or not (manifest or metadata). "
+                "If not specified, the file is always exported."
+            ),
+        )
+
+        parser.add_argument(
             "-d",
             "--delete",
             default=False,
@@ -177,6 +189,7 @@ class Command(CryptMixin, BaseCommand):
         self.target = Path(options["target"]).resolve()
         self.split_manifest: bool = options["split_manifest"]
         self.compare_checksums: bool = options["compare_checksums"]
+        self.compare_json: bool = options["compare_json"]
         self.use_filename_format: bool = options["use_filename_format"]
         self.use_folder_prefix: bool = options["use_folder_prefix"]
         self.delete: bool = options["delete"]
@@ -342,7 +355,7 @@ class Command(CryptMixin, BaseCommand):
                     ),
                 )
 
-                self.check_and_write(
+                self.check_and_write_json(
                     content,
                     manifest_name,
                 )
@@ -358,7 +371,7 @@ class Command(CryptMixin, BaseCommand):
         for key in manifest_dict:
             manifest.extend(manifest_dict[key])
         manifest_path = (self.target / "manifest.json").resolve()
-        self.check_and_write(
+        self.check_and_write_json(
             manifest,
             manifest_path,
         )
@@ -374,7 +387,7 @@ class Command(CryptMixin, BaseCommand):
         if self.passphrase:
             metadata.update(self.get_crypt_params())
 
-        self.check_and_write(
+        self.check_and_write_json(
             metadata,
             extra_metadata_path,
         )
@@ -506,14 +519,14 @@ class Command(CryptMixin, BaseCommand):
                     archive_target,
                 )
 
-    def check_and_write(
+    def check_and_write_json(
         self,
         content: list[dict] | dict,
         target: Path,
     ):
         """
-        Writes the source content to the target (json file).
-        If --compare-checksums arg was used, don't write to target file if
+        Writes the source content to the target json file.
+        If --compare-json arg was used, don't write to target file if
         the file exists and checksum is identical to content checksum.
         This preserves the file timestamps when no changes are made.
         """
@@ -522,7 +535,7 @@ class Command(CryptMixin, BaseCommand):
         perform_write = True
         if target in self.files_in_export_dir:
             self.files_in_export_dir.remove(target)
-            if self.compare_checksums:
+            if self.compare_json:
                 target_checksum = hashlib.md5(target.read_bytes()).hexdigest()
                 src_str = json.dumps(content, indent=2, ensure_ascii=False)
                 src_checksum = hashlib.md5(src_str.encode("utf-8")).hexdigest()
